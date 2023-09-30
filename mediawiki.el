@@ -11,6 +11,7 @@
 ;; URL: https://github.com/hexmode/mediawiki-el
 ;; Last Modified: <2020-07-11 22:45:06 mah>
 
+(require 'cl-lib)
 (defconst mediawiki-version "2.3.1"
   "Current version of mediawiki.el.")
 
@@ -1003,7 +1004,7 @@ allows you to see what is being sent to and from the server."
   "Given NAME, return the typical name that MediaWiki would use.
 Right now, this only means replacing \"_\" with \" \"."
   (if (or (not name) (string= name ""))
-      "Main Page"
+      "Página principal"
     (mapconcat 'identity (split-string name "_" t) " ")))
 
 (defun mediawiki-make-api-url (&optional sitename)
@@ -1396,7 +1397,7 @@ Prompt for a SUMMARY if one isn't given."
   "Get the first page for a given SITENAME."
   (let ((page (mediawiki-site-extract sitename 5)))
     (if (or (not page) (string= page ""))
-        "Main Page")))
+        "Página principal")))
 
 (defun mediawiki-site-get-token (sitename type)
   "Get token(s) for SITENAME of TYPE type."
@@ -1536,21 +1537,24 @@ Typically, this means anything enclosed in [[PAGE]]."
         (eol (point-at-eol))
         (bol (point-at-bol)))
     (save-excursion
-      (let* ((start  (when (search-backward "[[" bol t)
-                       (+ (point) 2)))
-             (end    (when (search-forward "]]" eol t)
-                       (- (point) 2)))
-             (middle (progn
-                       (goto-char start)
-                       (when (search-forward  "|" end t)
-                         (1- (point)))))
-             (pagename (when (and
-                              (not (eq nil start))
-                              (not (eq nil end))
-                              (<= pos end)
-                              (>= pos start))
-                         (buffer-substring-no-properties
-                          start (or middle end)))))
+			(let* ((start  (when (search-backward "http" bol t)
+											 (+ (point) 0)))
+						 (end    (when (search-forward " " eol t)
+											 (- (point) 0)))
+						 (middle (progn
+											 (goto-char start)
+											 (when (search-forward  "|" end t)
+												 (1- (point)))))
+						 (url (when (and
+												 (not (eq nil start))
+												 (not (eq nil end))
+												 (<= pos end)
+												 (>= pos start))
+										(buffer-substring-no-properties
+										 start (or middle end))))
+						 (pagename (substring url
+																	(+ (cl-search "index.php" url) 10)
+																	-1)))
         (if (string= "/"
                      (substring pagename 0 1))
             (concat mediawiki-page-title pagename)
